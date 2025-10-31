@@ -543,19 +543,38 @@ export class HttpTransport implements Transport {
           break;
 
         case 'jwt':
-          if (!auth.jwtSecret) {
-            throw new Error('JWT secret not configured');
+          // Try JWT verification first
+          try {
+            if (!auth.jwtSecret) {
+              throw new Error('JWT secret not configured');
+            }
+            const decoded = jwt.verify(token, auth.jwtSecret);
+            
+            // Validate required userObjId claim
+            if (typeof decoded === 'object' && decoded !== null && !('userObjId' in decoded)) {
+              throw new Error('Missing required userObjId claim');
+            }
+            
+            req.user = decoded;
+            req.jwtPayload = decoded;
+            req.authenticated_user_id = typeof decoded === 'object' && decoded !== null ? (decoded as any).userObjId : undefined;
+          } catch (jwtError) {
+            // JWT verification failed, try API key authentication as fallback
+            if (auth.apiKeys && auth.apiKeys.length > 0 && auth.apiKeys.includes(token)) {
+              // Valid API key - create system user context
+              req.user = {
+                id: 'mcp-api-key',
+                name: 'MCP API Client',
+                roles: ['api', 'user'],
+                permissions: ['read', 'write', 'execute']
+              };
+              req.authenticated_user_id = 'mcp-api-key';
+              req.authType = 'apikey';
+            } else {
+              // Both JWT and API key verification failed
+              throw jwtError;
+            }
           }
-          const decoded = jwt.verify(token, auth.jwtSecret);
-          
-          // Validate required userObjId claim
-          if (typeof decoded === 'object' && decoded !== null && !('userObjId' in decoded)) {
-            throw new Error('Missing required userObjId claim');
-          }
-          
-          req.user = decoded;
-          req.jwtPayload = decoded;
-          req.authenticated_user_id = typeof decoded === 'object' && decoded !== null ? (decoded as any).userObjId : undefined;
           break;
 
         case 'bearer':

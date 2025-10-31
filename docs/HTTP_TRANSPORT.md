@@ -189,10 +189,46 @@ interface CorsConfig {
 
 ### Authentication
 
-- **API Key Authentication**: Simple header-based authentication
-- **JWT Support**: Token-based authentication with expiration
-- **Bearer Token**: Standard OAuth-style bearer tokens
-- **Basic Authentication**: Username/password authentication
+The HTTP transport supports dual authentication with automatic fallback:
+
+- **JWT Token Authentication**: Primary authentication method with userObjId validation
+- **MCP API Key Authentication**: Fallback for service-to-service communication
+- **Dual Support**: When type is 'jwt', the middleware tries JWT first, then API keys
+- **Bearer Token Header**: Supports both `Authorization: Bearer` and `x-access-token`
+
+#### Setup Bearer Token Authentication
+
+1. **Generate API Keys**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+2. **Configure Environment**
+```bash
+# In .env file
+MCP_API_KEYS=your-generated-key-here,another-key-here
+JWT_SECRET=your-jwt-secret
+```
+
+3. **Usage Examples**
+```bash
+# Using Bearer token with API key
+curl -H "Authorization: Bearer your-api-key-here" \
+     http://localhost:8005/tools
+
+# Using x-access-token header
+curl -H "x-access-token: your-api-key-here" \
+     http://localhost:8005/tools
+
+# Using JWT token
+curl -H "Authorization: Bearer your-jwt-token" \
+     http://localhost:8005/tools
+```
+
+#### Authentication Priority
+1. Try JWT verification first
+2. If JWT fails and token matches API key → allow as API client
+3. If both fail → return 401 Unauthorized
 
 ### Rate Limiting
 
