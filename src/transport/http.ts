@@ -241,17 +241,15 @@ export class HttpTransport implements Transport {
    * Setup Express middleware stack
    */
   private _setupMiddleware(): void {
+    // Trust proxy for reverse proxy setup (Nginx) - MUST be first
+    this._app.set('trust proxy', 1);
+
     // Security middleware
     if (this._config.security.helmet) {
       this._app.use(helmet({
         contentSecurityPolicy: false, // Disable CSP for API performance
         crossOriginEmbedderPolicy: false,
       }));
-    }
-
-    // Trust proxy if configured (for load balancers)
-    if (this._config.security.trustProxy) {
-      this._app.set('trust proxy', true);
     }
 
     // CORS middleware (before rate limiting for better performance)
@@ -295,18 +293,7 @@ export class HttpTransport implements Transport {
           return req.method === 'OPTIONS' || 
                  (req.method === 'GET' && req.path.endsWith('/health'));
         },
-        keyGenerator: (req) => {
-          // Use X-Forwarded-For if behind proxy, otherwise use remoteAddress
-          const forwarded = req.headers['x-forwarded-for'] as string;
-          const realIp = req.headers['x-real-ip'] as string;
-          const clientIp = forwarded || realIp || req.ip || req.connection?.remoteAddress || 'unknown';
-          
-          // Handle IPv6 properly by normalizing the address
-          if (clientIp.includes('::ffff:')) {
-            return clientIp.replace('::ffff:', '');
-          }
-          return clientIp;
-        },
+
       });
       this._app.use(limiter);
     }
