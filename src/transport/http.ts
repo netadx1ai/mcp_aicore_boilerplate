@@ -1,3 +1,5 @@
+import { swaggerDefinition, swaggerOptions } from '../swagger/index.js';
+
 /**
  * @fileoverview HTTP Transport for MCP TypeScript
  *
@@ -370,23 +372,27 @@ export class HttpTransport implements Transport {
       return;
     }
 
-    const swaggerOptions = {
-      definition: {
-        openapi: '3.0.0',
-        info: {
-          title: this._config.swagger.title,
-          description: this._config.swagger.description,
-          version: this._config.swagger.version,
-          contact: this._config.swagger.contact,
+    // Use comprehensive swagger definition with dynamic server configuration
+    const enhancedSwaggerDefinition = {
+      ...swaggerDefinition,
+      info: {
+        ...swaggerDefinition.info,
+        title: this._config.swagger.title || swaggerDefinition.info.title,
+        description: this._config.swagger.description || swaggerDefinition.info.description,
+        version: this._config.swagger.version || swaggerDefinition.info.version,
+      },
+      servers: [
+        {
+          url: `http://${this._config.host}:${this._config.port}${this._config.basePath}`,
+          description: 'Development server',
         },
-        servers: [
-          {
-            url: `http://${this._config.host}:${this._config.port}${this._config.basePath}`,
-            description: 'Development server',
-          },
-        ],
-        components: {
-          securitySchemes: this._config.auth?.enabled
+        ...swaggerDefinition.servers || []
+      ],
+      components: {
+        ...swaggerDefinition.components,
+        securitySchemes: {
+          ...swaggerDefinition.components?.securitySchemes,
+          ...(this._config.auth?.enabled
             ? {
                 ApiKeyAuth: {
                   type: 'apiKey',
@@ -394,21 +400,50 @@ export class HttpTransport implements Transport {
                   name: this._config.auth.headerName || 'X-API-Key',
                 },
               }
-            : undefined,
-        },
-      },
-      apis: [__filename], // This file contains JSDoc comments for API docs
+            : {})
+        }
+      }
     };
 
-    const specs = swaggerJsdoc(swaggerOptions);
+    const enhancedSwaggerOptions = {
+      definition: enhancedSwaggerDefinition,
+      apis: [
+        __filename,
+        './src/tools/*.ts',
+        './src/swagger/*.ts',
+        './src/utils/*.ts'
+      ]
+    };
+
+    const specs = swaggerJsdoc(enhancedSwaggerOptions);
     this._app.use(
       this._config.swagger.path,
       swaggerUi.serve,
       swaggerUi.setup(specs, {
         explorer: true,
-        customCss: '.swagger-ui .topbar { display: none }',
+        customCss: `
+          .swagger-ui .topbar { display: none }
+          .swagger-ui .info { margin: 20px 0; }
+          .swagger-ui .info .title { color: #3b4151; font-size: 36px; }
+          .swagger-ui .scheme-container { background: #f7f7f7; padding: 15px; margin: 20px 0; }
+        `,
+        customSiteTitle: 'NetADX AI-CORE MCP API Documentation',
+        customfavIcon: '/favicon.ico',
+        swaggerOptions: {
+          persistAuthorization: true,
+          displayRequestDuration: true,
+          filter: true,
+          showExtensions: true,
+          showCommonExtensions: true,
+          tryItOutEnabled: true
+        }
       })
     );
+
+    this._logger.info('Swagger documentation initialized', {
+      path: this._config.swagger.path,
+      url: `http://${this._config.host}:${this._config.port}${this._config.swagger.path}`
+    });
   }
 
   /**
