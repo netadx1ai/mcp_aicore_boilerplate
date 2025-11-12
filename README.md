@@ -5,6 +5,8 @@
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-v1.0.0-green.svg)](https://github.com/modelcontextprotocol/typescript-sdk)
 [![Node.js](https://img.shields.io/badge/node-18+-brightgreen.svg)](https://nodejs.org)
 [![NetADX AI-CORE](https://img.shields.io/badge/NetADX-AI--CORE-purple.svg)](https://netadx.ai)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.0-green.svg)](https://spec.openapis.org/oas/v3.0.0)
+[![Swagger UI](https://img.shields.io/badge/Swagger%20UI-Interactive-blue.svg)](http://localhost:8005/docs)
 
 A minimal, production-ready MCP (Model Context Protocol) API server boilerplate for building scalable AI-powered backend services.
 
@@ -17,6 +19,7 @@ A minimal, production-ready MCP (Model Context Protocol) API server boilerplate 
 - [Overview](#overview)
 - [Features](#features)
 - [Quick Start](#quick-start)
+- [Interactive API Documentation](#interactive-api-documentation)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
 - [Development](#development)
@@ -33,6 +36,7 @@ NetADX AI-CORE is a simple, clean boilerplate for building MCP API servers. It p
 - **TypeScript** - Type-safe development
 - **MongoDB Integration** - Database ready with connection pooling
 - **JWT Authentication** - Secure API access
+- **Interactive API Documentation** - Comprehensive Swagger/OpenAPI 3.0 docs
 - **Direct TypeScript Execution** - No build step with `tsx`
 - **Production Ready** - Logging, error handling, graceful shutdown
 - **Minimal and Clean** - Easy to understand and extend
@@ -46,6 +50,7 @@ NetADX AI-CORE is a simple, clean boilerplate for building MCP API servers. It p
 - Winston logging
 - Environment configuration
 - Example CRUD tool
+- Interactive Swagger documentation at `/docs`
 
 **Deployment:**
 - Quick deployment script (`deploy-quick.sh`)
@@ -170,6 +175,59 @@ curl -X POST \
   http://localhost:8005/tools/example_tool
 ```
 
+## Interactive API Documentation
+
+### Swagger/OpenAPI 3.0 Documentation
+
+The boilerplate includes comprehensive **interactive API documentation** powered by Swagger UI and OpenAPI 3.0 specification.
+
+**Access Documentation:**
+```bash
+# Start the server
+npm run dev
+
+# Open documentation in browser
+open http://localhost:8005/docs
+```
+
+**Features:**
+- 🚀 **Interactive Testing** - Test all endpoints directly from the browser
+- 🔐 **Built-in Authentication** - JWT and API key authentication flows
+- 📝 **Comprehensive Examples** - Real request/response examples for every endpoint
+- ✅ **Schema Validation** - Request/response validation against OpenAPI schemas
+- 📊 **Error Documentation** - Complete error codes and recovery suggestions
+- ⚡ **Performance Metrics** - Response time tracking and optimization tips
+
+**Key Endpoints Documented:**
+- `GET /health` - System health check with performance metrics
+- `GET /info` - Server information and capabilities
+- `GET /tools` - List all available MCP tools
+- `POST /tools/{name}` - Execute specific MCP tools with validation
+- `POST /rpc` - JSON-RPC 2.0 endpoint for MCP communication
+
+**Authentication Methods:**
+- **JWT Bearer Token**: `Authorization: Bearer <token>`
+- **API Key**: `X-API-Key: <key>`
+
+**Quick Test Example:**
+```bash
+# Test health endpoint (no auth required)
+curl http://localhost:8005/health
+
+# List tools (requires auth)
+curl -H "Authorization: Bearer your-jwt-token" \
+     http://localhost:8005/tools
+
+# Execute example tool
+curl -X POST \
+  -H "Authorization: Bearer your-jwt-token" \
+  -H "Content-Type: application/json" \
+  -d '{"arguments": {"action": "list_items"}}' \
+  http://localhost:8005/tools/example-tool
+```
+
+For detailed documentation about the Swagger implementation, see: [MCP AI-Core Swagger Documentation](../../docs/development/mcp-aicore-swagger-documentation.md)
+
 ## Project Structure
 
 ```
@@ -181,8 +239,12 @@ mcp_aicore_boilerplate/
 │   │   └── index.ts
 │   ├── tools/                   # MCP tools (your business logic)
 │   │   └── example-tool.ts     # Example CRUD tool
+│   ├── swagger/                 # API documentation
+│   │   ├── index.ts            # Main Swagger/OpenAPI configuration
+│   │   ├── tools.ts            # Tool-specific documentation
+│   │   └── endpoints.ts        # Endpoint documentation
 │   ├── transport/               # Transport layers
-│   │   ├── http.ts             # HTTP transport
+│   │   ├── http.ts             # HTTP transport with Swagger integration
 │   │   ├── http-server.ts      # HTTP server wrapper
 │   │   └── index.ts
 │   ├── utils/                   # Utilities
@@ -463,11 +525,14 @@ curl -H "x-access-token: YOUR_JWT_TOKEN" http://localhost:8005/tools
 
 ### Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check (no auth) |
-| `/tools` | GET | List available tools |
-| `/tools/{tool_name}` | POST | Execute specific tool |
+| Endpoint | Method | Description | Documentation |
+|----------|--------|-------------|---------------|
+| `/health` | GET | Health check (no auth) | [Interactive Docs](http://localhost:8005/docs#/Health/getHealth) |
+| `/info` | GET | Server information (no auth) | [Interactive Docs](http://localhost:8005/docs#/Info/getServerInfo) |
+| `/tools` | GET | List available tools | [Interactive Docs](http://localhost:8005/docs#/Tools/listTools) |
+| `/tools/{tool_name}` | POST | Execute specific tool | [Interactive Docs](http://localhost:8005/docs#/Tools/executeTool) |
+| `/rpc` | POST | JSON-RPC 2.0 endpoint | [Interactive Docs](http://localhost:8005/docs#/RPC/jsonRpcEndpoint) |
+| `/docs` | GET | Swagger documentation | Direct browser access |
 
 ### Example Tool Actions
 
